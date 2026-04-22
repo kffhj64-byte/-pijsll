@@ -21,9 +21,15 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, ErrorEvent
 import google.generativeai as genai
 
-# Playwright & Monitoring
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError, Page
-from playwright_stealth import stealth_async
+
+# التعديل هنا: استخدام استيراد آمن يتوافق مع إصدارات المكتبة المختلفة
+try:
+    from playwright_stealth import stealth_async
+except ImportError:
+    # في بعض الإصدارات تكون الدالة داخل موديل فرعي
+    from playwright_stealth.stealth import stealth_async
+
 import sentry_sdk
 from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
@@ -51,9 +57,21 @@ if GEMINI_API_KEY and GEMINI_API_KEY.strip():
 else:
     AI_ENABLED = False
 
-SENTRY_DSN = os.environ.get('SENTRY_DSN')
-if SENTRY_DSN:
-    sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=1.0)
+# --- بداية الجزء الخاص بـ Sentry ---
+try:
+    SENTRY_DSN = os.environ.get('SENTRY_DSN')
+    if SENTRY_DSN:
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            traces_sample_rate=1.0,
+            profiles_sample_rate=1.0,
+        )
+        print("✅ Sentry initialized successfully.")
+    else:
+        print("⚠️ Sentry DSN not found, skipping initialization...")
+except Exception as e:
+    print(f"❌ Failed to initialize Sentry: {e}")
+# --- نهاية الجزء الخاص بـ Sentry ---
 
 # إعدادات AWS S3
 S3_BUCKET = os.environ.get('S3_BUCKET_NAME')
